@@ -1,8 +1,8 @@
 function Home(){
     return(
-        <div className="min-h-screen flex items-center justify-center bg-black text-white">
-            <h1 className="text-3xl font-bold">Home</h1>
-            <p className="mt-2 text-gray-400">
+        <div className="bg-[#ede8e0] text-[#2a2018]">
+            <h1 className="text-3xl font-bold text-red">Home</h1>
+            <p className="mt-2 text-[#2a2018]">
                 udvozol a mozi
             </p>
         </div>

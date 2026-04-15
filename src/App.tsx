@@ -8,9 +8,8 @@ import Register from './pages/register';
 function App() {
   return(
   <BrowserRouter>
-    <div className='bg-black min-h-screen text-white'>
+    <div className='bg-[#f2f0ec] min-h-screen text-[#2a2520]'>
       <Navbar />
-
       <div className='p-6'>
         <Routes>
           <Route path='/' element={<Home/>}/>
