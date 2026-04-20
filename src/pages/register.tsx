@@ -1,166 +1,105 @@
 import { useState } from "react";
-import { register } from "../services/authServiec";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { register } from "../services/authService";
 
-type FieldErrors = {
-  username?: string;
-  email?: string;
-  fullName?: string;
-  password?: string;
-};
+type FieldErrors = { username?: string; email?: string; fullName?: string; password?: string; };
 
-function Register() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [email, setEmail] = useState("");
-  const [fullName, setFullname] = useState("");
+export default function Register() {
+  const [form, setForm] = useState({ username: "", email: "", fullName: "", password: "" });
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleRegister = async () => {
-    try {
-      await register(username, password, email, fullName);
-      window.location.href = "/";
-    } catch (err: any) {
-      const data = err.response?.data;
-      let messages: string[] = [];
-
-      if (typeof data === "string") {
-        messages = data.split(/,|\n/);
-      } else if (Array.isArray(data)) {
-        messages = data;
-      } else if (typeof data === "object" && data !== null) {
-        messages = Object.values(data).flat() as string[];
-      } else {
-        messages = ["Hiba történt"];
-      }
-
-      const cleaned = messages
-        .map((m) => m.trim())
-        .filter((m) => m !== "" && !m.match(/\d{4}-\d{2}-\d{2}/))
-        .filter((m, i, arr) => arr.indexOf(m) === i);
-
-      const fieldErrors: FieldErrors = {};
-
-      cleaned.forEach((msg) => {
-        if (msg.includes("username"))
-          fieldErrors.username = "Felhasználónév kötelező";
-        else if (msg.includes("email") && msg.includes("well-formed"))
-          fieldErrors.email = "Hibás e-mail cím";
-        else if (msg.includes("email"))
-          fieldErrors.email = "E-mail cím kötelező";
-        else if (msg.includes("fullName"))
-          fieldErrors.fullName = "Teljes név kötelező";
-        else if (msg.includes("password") && msg.includes("size"))
-          fieldErrors.password = "A jelszó minimum 8 karakter";
-        else if (msg.includes("password"))
-          fieldErrors.password = "A jelszó kötelező";
-      });
-
-      setErrors(fieldErrors);
-    }
+  const set = (f: string) => (e: any) => {
+    setForm(prev => ({ ...prev, [f]: e.target.value }));
+    setErrors(prev => ({ ...prev, [f]: undefined }));
   };
 
-  const inputClass = (field: keyof FieldErrors) =>
-    `w-full px-3 py-2.5 bg-[#ede9e3] border rounded-lg text-[13px] text-[#2a2520] placeholder:text-[#8c8880] outline-none transition-colors hover:border-[#b0aa9f] focus:bg-[#f5f2ee] ${
-      errors[field]
-        ? "border-[#a0522d] focus:border-[#a0522d] bg-[#f2e4d8]"
-        : "border-[#ccc7be] focus:border-[#8b6f47]"
-    }`;
+  const handleRegister = async () => {
+    setLoading(true);
+    try {
+      await register(form.username, form.password, form.email, form.fullName);
+      navigate("/login");
+    } catch (err: any) {
+      const data = err.response?.data;
+      const fieldErrors: FieldErrors = {};
+      const messages: string[] = typeof data === "object" && data !== null
+        ? (Object.values(data).flat() as string[])
+        : typeof data === "string" ? [data] : ["Hiba történt"];
+      messages.forEach(msg => {
+        if (msg.includes("username")) fieldErrors.username = "Ez a felhasználónév már foglalt";
+        else if (msg.includes("email") && msg.includes("well-formed")) fieldErrors.email = "Hibás e-mail cím";
+        else if (msg.includes("email")) fieldErrors.email = "Ez az e-mail már regisztrált";
+        else if (msg.includes("fullName")) fieldErrors.fullName = "Teljes név kötelező";
+        else if (msg.includes("password") && msg.includes("size")) fieldErrors.password = "Legalább 8 karakter";
+        else if (msg.includes("password")) fieldErrors.password = "Jelszó kötelező";
+      });
+      if (Object.keys(fieldErrors).length === 0) fieldErrors.username = "Hiba történt, próbáld újra";
+      setErrors(fieldErrors);
+    } finally { setLoading(false); }
+  };
 
-  const clearError = (field: keyof FieldErrors) =>
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+  const fields = [
+    { key: "username",  label: "Felhasználónév",       type: "text",     placeholder: "pl. john_doe" },
+    { key: "email",     label: "E-mail cím",            type: "email",    placeholder: "pl. john@example.com" },
+    { key: "fullName",  label: "Teljes név",            type: "text",     placeholder: "pl. Kovács János" },
+    { key: "password",  label: "Jelszó",               type: "password", placeholder: "Minimum 8 karakter" },
+  ];
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#f2f0ec]">
-      <div className="flex flex-col gap-5 w-80">
-
-        <div className="flex flex-col gap-1 mb-2">
-          <h1 className="text-[22px] font-medium text-[#2a2520] tracking-tight">
-            Regisztráció
-          </h1>
+    <div className="flex items-center justify-center min-h-screen bg-[#f2f0ec] p-6">
+      <div className="w-full max-w-sm fade-up">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 mb-5">
+            <div className="w-5 h-5 rounded-full border border-[#8b6f47] flex items-center justify-center">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#8b6f47]" />
+            </div>
+            <span className="text-[14px] font-medium text-[#2a2520] tracking-widest uppercase">Cinema</span>
+          </div>
+          <h1 className="text-[28px] text-[#2a2520] mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>Regisztráció</h1>
           <p className="text-[13px] text-[#8c8880]">Hozz létre egy fiókot</p>
         </div>
 
-        <div className="flex flex-col gap-3">
-
-          <div className="flex flex-col gap-1">
-            <input
-              type="text"
-              placeholder="Felhasználónév"
-              className={inputClass("username")}
-              value={username}
-              onChange={(e) => { setUsername(e.target.value); clearError("username"); }}
-              onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-            />
-            {errors.username && (
-              <p className="text-[11px] text-[#a0522d] px-1">{errors.username}</p>
-            )}
+        <div className="bg-[#ede9e3] border border-[#ccc7be] rounded-xl p-6 flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
+            {fields.map(({ key, label, type, placeholder }) => (
+              <div key={key}>
+                <label className="text-[12px] font-medium text-[#8c8880] block mb-1.5">{label}</label>
+                <input
+                  type={type}
+                  placeholder={placeholder}
+                  className={`w-full px-3 py-2.5 bg-[#f2f0ec] rounded-lg text-[13px] text-[#2a2520] placeholder:text-[#b0aa9f] outline-none transition-colors hover:border-[#b0aa9f] ${
+                    errors[key as keyof FieldErrors]
+                      ? "border border-red-300 bg-red-50 focus:border-red-400"
+                      : "border border-[#ccc7be] focus:border-[#8b6f47]"
+                  }`}
+                  value={(form as any)[key]}
+                  onChange={set(key)}
+                  onKeyDown={e => e.key === "Enter" && handleRegister()}
+                />
+                {errors[key as keyof FieldErrors] && (
+                  <p className="text-[11px] text-red-500 mt-1">{errors[key as keyof FieldErrors]}</p>
+                )}
+              </div>
+            ))}
           </div>
 
-          <div className="flex flex-col gap-1">
-            <input
-              type="email"
-              placeholder="E-mail cím"
-              className={inputClass("email")}
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); clearError("email"); }}
-              onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-            />
-            {errors.email && (
-              <p className="text-[11px] text-[#a0522d] px-1">{errors.email}</p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <input
-              type="text"
-              placeholder="Teljes név"
-              className={inputClass("fullName")}
-              value={fullName}
-              onChange={(e) => { setFullname(e.target.value); clearError("fullName"); }}
-              onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-            />
-            {errors.fullName && (
-              <p className="text-[11px] text-[#a0522d] px-1">{errors.fullName}</p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <input
-              type="password"
-              placeholder="Jelszó"
-              className={inputClass("password")}
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); clearError("password"); }}
-              onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-            />
-            {errors.password && (
-              <p className="text-[11px] text-[#a0522d] px-1">{errors.password}</p>
-            )}
-          </div>
-
+          <button
+            onClick={handleRegister}
+            disabled={loading}
+            className="w-full py-2.5 bg-[#2a2520] text-[#f2f0ec] text-[13px] font-medium rounded-lg border border-[#2a2520] transition-colors hover:bg-[#3d3730] active:scale-[0.98] disabled:opacity-60"
+          >
+            {loading ? "Regisztráció..." : "Fiók létrehozása"}
+          </button>
         </div>
 
-        <button
-          onClick={handleRegister}
-          className="w-full py-2.5 bg-[#2a2520] text-[#f2f0ec] text-[13px] font-medium rounded-lg border border-[#2a2520] transition-colors hover:bg-[#3d3730] active:scale-[0.98]"
-        >
-          Regisztráció
-        </button>
-
-        <p className="text-center text-[12px] text-[#8c8880]">
+        <p className="text-center text-[12px] text-[#8c8880] mt-5">
           Már van fiókod?{" "}
-          <Link
-            to="/login"
-            className="text-[#8b6f47] font-medium hover:text-[#6b5230] transition-colors"
-          >
+          <Link to="/login" className="text-[#8b6f47] font-medium hover:text-[#6b5230] transition-colors no-underline">
             Bejelentkezés
           </Link>
         </p>
-
       </div>
     </div>
   );
 }
-
-export default Register;
